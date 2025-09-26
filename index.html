@@ -1,32 +1,138 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>naFila</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>naFila - Organize seus conteúdos</h1>
+  <header class="site-header">
+    <img class="logo" src="logo.png" alt="naFila" />
+    <h1 class="app-title">naFila</h1>
+    <!-- Mostra apenas quando logado -->
+    <button id="logoutBtn" class="btn logout-btn" hidden type="button" aria-label="Sair">Sair</button>
+  </header>
 
-  <div id="login">
-    <h2>Login</h2>
-    <input type="text" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
-    <p id="loginMsg"></p>
+  <!-- Login -->
+  <main id="loginBox" class="form-container" aria-labelledby="login-title">
+    <h2 id="login-title">Entrar</h2>
+    <form id="loginForm" novalidate>
+      <label for="email">E-mail ou usuário</label>
+      <input id="email" name="email" type="text" placeholder="seu@email.com ou usuario" autocomplete="username" required />
+      <label for="password">Senha</label>
+      <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+  </main>
+
+  <!-- App -->
+  <main id="app" class="app-root" style="display:none;">
+    <section class="form-container" aria-labelledby="new-title">
+      <h2 id="new-title">Novo conteúdo</h2>
+      <form id="newForm" novalidate>
+        <label for="title" class="visually-hidden">Título</label>
+        <input id="title" name="title" type="text" placeholder="Título do conteúdo" required />
+
+        <label for="tipo" class="visually-hidden">Tipo</label>
+        <select id="tipo" name="tipo">
+          <option value="livro">Livro</option>
+          <option value="curso">Curso</option>
+          <option value="artigo">Artigo</option>
+          <option value="video">Vídeo</option>
+        </select>
+
+        <label for="status" class="visually-hidden">Status</label>
+        <select id="status" name="status">
+          <option value="pendente">Pendente</option>
+          <option value="em_progresso">Em progresso</option>
+          <option value="concluido">Concluído</option>
+        </select>
+
+        <button class="btn add-new-item-btn" type="submit">Adicionar</button>
+      </form>
+    </section>
+
+    <section class="list-container" aria-labelledby="list-title">
+      <h2 id="list-title">Conteúdos</h2>
+
+      <!-- ORDEM: título | tipo | status | Buscar (tudo numa linha) -->
+      <form id="filterForm" class="filters" role="search" aria-label="Filtrar conteúdos">
+        <label for="search-input" class="visually-hidden">Buscar por título</label>
+        <input id="search-input" name="q" type="search" placeholder="Buscar por título…" />
+
+        <label for="filter-type" class="visually-hidden">Filtrar por tipo</label>
+        <select id="filter-type" name="tipo">
+          <option value="">Todos os tipos</option>
+          <option value="livro">Livro</option>
+          <option value="curso">Curso</option>
+          <option value="artigo">Artigo</option>
+          <option value="video">Vídeo</option>
+        </select>
+
+        <label for="filter-status" class="visually-hidden">Filtrar por status</label>
+        <select id="filter-status" name="status">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="em_progresso">Em progresso</option>
+          <option value="concluido">Concluído</option>
+        </select>
+
+        <button id="search-btn" class="btn" type="submit">Buscar</button>
+      </form>
+
+      <ul id="contentList" class="content-list" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <!-- Modal Edit -->
+  <div id="editModal" class="modal" aria-hidden="true">
+    <div class="modal-content form-container" role="dialog" aria-modal="true" aria-labelledby="edit-title-label">
+      <button class="close-button" type="button" aria-label="Fechar" data-close-edit>&times;</button>
+      <h2 id="edit-title-label">Editar conteúdo</h2>
+
+      <label for="edit-title">Título</label>
+      <input id="edit-title" type="text" />
+
+      <label for="edit-tipo">Tipo</label>
+      <select id="edit-tipo">
+        <option value="livro">Livro</option>
+        <option value="curso">Curso</option>
+        <option value="artigo">Artigo</option>
+        <option value="video">Vídeo</option>
+      </select>
+
+      <label for="edit-status">Status</label>
+      <select id="edit-status">
+        <option value="pendente">Pendente</option>
+        <option value="em_progresso">Em progresso</option>
+        <option value="concluido">Concluído</option>
+      </select>
+
+      <label for="edit-progresso">Progresso (%)</label>
+      <input id="edit-progresso" type="number" min="0" max="100" step="1" />
+
+      <button id="saveEditBtn" class="btn btn-primary" type="button">Salvar</button>
+    </div>
   </div>
 
-  <div id="app" style="display:none;">
-    <h2>Conteúdos</h2>
-    <input type="text" id="title" placeholder="Título">
-    <input type="text" id="tipo" placeholder="Tipo">
-    <input type="text" id="status" placeholder="Status">
-    <input type="number" id="progresso" placeholder="Progresso %">
-    <button onclick="addContent()">Adicionar</button>
-
-    <ul id="contentList"></ul>
+  <!-- Modal Delete -->
+  <div id="deleteModal" class="modal" aria-hidden="true">
+    <div class="modal-content form-container" role="dialog" aria-modal="true" aria-labelledby="del-title-label">
+      <button class="close-button" type="button" aria-label="Fechar" data-close-delete>&times;</button>
+      <h2 id="del-title-label">Excluir conteúdo</h2>
+      <p>Tem certeza que deseja excluir <strong id="del-title">este item</strong>?</p>
+      <div class="item-card-actions" style="justify-content:flex-end;">
+        <button type="button" class="btn delete-btn" id="confirmDeleteBtn">Excluir</button>
+        <button type="button" class="btn" id="cancelDeleteBtn">Cancelar</button>
+      </div>
+    </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Toasts -->
+  <div id="toastRoot" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="script.js" defer></script>
 </body>
 </html>
+
