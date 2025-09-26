@@ -1,41 +1,60 @@
 # naFilaPlus — Frontend (HTML/CSS/JS)
 
-Interface baseada no projeto inicial, evoluída para cumprir os requisitos do MVP:
-- **Login** com API externa (ReqRes) ou **bypass** para testes
-- **Form** de novo conteúdo com validação
-- **Lista** de conteúdos com filtros
-- **Edição** e **exclusão** via **modal** (sem `alert`/`prompt`)
-- **Barra de progresso** + valor em %
-- **Drag and Drop** com persistência de ordem (localStorage)
-- **Estilo**: classes do projeto base
-- **Botão "Sair"** (limpa sessão e volta para o login)
+Interface evoluída a partir do projeto original, seguindo os requisitos do MVP:
+- Tela de **login** (autenticação via API externa).
+- **Cadastro** de conteúdo (progresso inicia em 0% por requisito).
+- **Listagem** com filtros (título, tipo, status).
+- **Edição**/**Exclusão** via **modais** (sem `alert/prompt`).
+- **Barra de progresso** visual + porcentagem.
+- **Drag & Drop** com persistência de ordem (localStorage).
+- **Estilo** seguindo as classes do projeto base.
+- Botão **Sair** (só aparece logado, canto superior direito).
 
-## Como rodar (Docker)
+---
+
+## 🔧 Pré‑requisitos
+- Docker
+- Backend rodando em `http://<host>:5000`
+
+O frontend usa `const apiUrl = \`http://${location.hostname}:5000\`;` — ou seja, ele tenta falar com o **mesmo host** onde você acessa o frontend. Se o backend estiver em outro host, você pode:
+- Acessar o frontend pelo mesmo host do backend, **ou**
+- Ajustar `apiUrl` no `script.js` para o IP do backend (ex.: `http://192.168.50.218:5000`).
+
+---
+
+## 🚀 Build & Run
 ```bash
 docker rm -f nafila-frontend 2>/dev/null || true
 docker build -t nafila-frontend .
 docker run -d --name nafila-frontend -p 8080:80 nafila-frontend
+
 # Abra: http://localhost:8080
 ```
 
-> O frontend espera o backend em `http://SEU_HOST:5000` (detecta `location.hostname`).
+---
 
-## Credenciais de demonstração (requisito de "como testar")
-Use o serviço de teste **ReqRes** (padrão do backend):
-- **E-mail:** `eve.holt@reqres.in`
-- **Senha:** `cityslicka`
-- **API Key (se o backend exigir):** valor de `EXTERNAL_AUTH_API_KEY` (ex.: `demo123`)
+## 🔐 Credenciais de demonstração (conforme modo do backend)
+- **DummyJSON (recomendado p/ avaliação):**
+  - No campo **e‑mail**, digite o **username**.
+  - **username:** `emilys`
+  - **password:** `emilyspass`
 
-> Se o backend estiver com `BYPASS_EXTERNAL_AUTH=1`, **qualquer e-mail/senha** funcionam (apenas para desenvolvimento).
+- **ReqRes (padrão do backend):**
+  - **e‑mail:** `eve.holt@reqres.in`
+  - **senha:** `cityslicka`
+  - *Observação:* o serviço pode retornar `401` dependendo de políticas; prefira DummyJSON para testes do MVP.
 
-## Fluxo de uso
-1. Acesse `http://localhost:8080`
-2. Faça **login** com as credenciais acima
-3. Adicione um conteúdo (título, tipo, status, progresso)
-4. Edite/exclua via **modal**
-5. Use **Concluir** para marcar como concluído (100%)
-6. Reordene com **drag and drop**
+---
 
-## Observações
-- A ordem é persistida somente no navegador (não no backend), conforme escopo de MVP.
-- Para redes diferentes, garanta acesso ao `:5000` do backend.
+## 🧭 Fluxo de uso
+1. Abra o frontend e faça **login**.
+2. Cadastre um novo conteúdo (progresso inicia em **0%**).
+3. Use filtros, edite/exclua via **modal**.
+4. Clique **Concluir** para marcar 100%.
+5. Reordene via **drag & drop** (a ordem fica salva no navegador).
+
+---
+
+## 📝 Notas
+- Ordem dos cards é persistida apenas no navegador (escopo do MVP).
+- Se for acessar em rede (ex.: Mac → VM), exponha as portas e garanta que o host do backend é alcançável no `:5000`.
