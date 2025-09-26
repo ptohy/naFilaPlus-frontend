@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>naFila</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>naFila - Organize seus conteúdos</h1>
+
+  <div id="login">
+    <h2>Login</h2>
+    <input type="text" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <div id="app" style="display:none;">
+    <h2>Conteúdos</h2>
+    <input type="text" id="title" placeholder="Título">
+    <input type="text" id="tipo" placeholder="Tipo">
+    <input type="text" id="status" placeholder="Status">
+    <input type="number" id="progresso" placeholder="Progresso %">
+    <button onclick="addContent()">Adicionar</button>
+
+    <ul id="contentList"></ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
