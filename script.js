@@ -1,26 +1,23 @@
-/* =========================================================
-   Config
-   ========================================================= */
-const apiUrl = `http://${location.hostname}:5000`;
+const resolvedHost = (location.hostname === 'localhost' || location.hostname === '::1')
+  ? '127.0.0.1'
+  : location.hostname;
+const apiUrl = `${location.protocol}//${resolvedHost}:5000`;
 
-/* =========================================================
-   Estado
-   ========================================================= */
 let token = localStorage.getItem('nf_token') || null;
 let contentsCache = [];
 let editingId = null;
 let deletingId = null;
 let dragId = null;
 
-/* =========================================================
-   Helpers
-   ========================================================= */
 const $  = (id) => document.getElementById(id);
-const esc = (s) => (s ?? '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const esc = (s) => (s ?? '').toString().replace(/[&<>"']/g, m => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]
+));
 const clamp = (n, min=0, max=100) => Math.max(min, Math.min(max, Number(n || 0)));
 
 function showToast(msg, type='success', ms=2200){
   const root = $('toastRoot');
+  if(!root) return alert(msg);
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.textContent = msg;
@@ -31,6 +28,7 @@ function showToast(msg, type='success', ms=2200){
     setTimeout(()=>el.remove(), 160);
   }, ms);
 }
+
 function normalizeStatus(s){ return s === 'fazendo' ? 'em_progresso' : s; }
 function statusLabel(s){
   s = normalizeStatus(s);
@@ -40,19 +38,19 @@ function statusLabel(s){
        : s;
 }
 
-/* =========================================================
-   Autenticação
-   ========================================================= */
 function setAuthState(isAuthed){
-  $('loginBox').style.display = isAuthed ? 'none' : 'block';
-  $('app').style.display      = isAuthed ? 'block' : 'none';
-  $('logoutBtn').hidden       = !isAuthed;
+  const loginBox = $('loginBox');
+  const appBox   = $('app');
+  if (loginBox) loginBox.style.display = isAuthed ? 'none' : 'block';
+  if (appBox)   appBox.style.display   = isAuthed ? 'block' : 'none';
+  const logoutBtn = $('logoutBtn');
+  if (logoutBtn) logoutBtn.hidden = !isAuthed;
 }
 
 async function login(e){
   e?.preventDefault?.();
-  const email = $('email').value.trim();
-  const password = $('password').value.trim();
+  const email = $('email')?.value?.trim() || '';
+  const password = $('password')?.value?.trim() || '';
 
   if(!email || !password){
     showToast('Preencha e-mail/usuário e senha', 'error');
@@ -62,6 +60,7 @@ async function login(e){
     const res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
       body: JSON.stringify({ email, password })
     });
     const data = await res.json().catch(()=>({}));
@@ -86,9 +85,6 @@ function logout(){
   showToast('Sessão encerrada');
 }
 
-/* =========================================================
-   Dados / API
-   ========================================================= */
 function applySavedOrder(){
   const order = JSON.parse(localStorage.getItem('nf_order') || '[]');
   if(!order.length) return;
@@ -102,8 +98,9 @@ function applySavedOrder(){
 async function loadContents(params={}){
   const q = new URLSearchParams();
   if(params.status) q.set('status', params.status);
-  if(params.tipo) q.set('tipo', params.tipo);
-  const res = await fetch(`${apiUrl}/contents${q.toString()?`?${q}`:''}`);
+  if(params.tipo)   q.set('tipo', params.tipo);
+
+  const res = await fetch(`${apiUrl}/contents${q.toString()?`?${q}`:''}`, { cache: 'no-store' });
   const data = await res.json().catch(()=>[]);
   contentsCache = (Array.isArray(data)? data : []).map(it => ({...it, status: normalizeStatus(it.status)}));
   applySavedOrder();
@@ -112,9 +109,9 @@ async function loadContents(params={}){
 
 function applyFilters(e){
   e?.preventDefault?.();
-  const s = $('search-input').value.trim().toLowerCase();
-  const tipo = $('filter-type').value;
-  const status = $('filter-status').value;
+  const s     = $('search-input')?.value?.trim().toLowerCase() || '';
+  const tipo  = $('filter-type')?.value || '';
+  const status= $('filter-status')?.value || '';
 
   loadContents({ tipo: tipo || undefined, status: status || undefined }).then(() => {
     let list = contentsCache;
@@ -123,11 +120,10 @@ function applyFilters(e){
   });
 }
 
-/* =========================================================
-   Render
-   ========================================================= */
 function renderList(list=contentsCache){
   const ul = $('contentList');
+  if(!ul) return;
+
   ul.innerHTML = '';
   if(!list.length){
     const li = document.createElement('li');
@@ -145,8 +141,8 @@ function renderList(list=contentsCache){
     li.dataset.id = item.id;
 
     li.innerHTML = `
-      <strong>${esc(item.title)}</strong>
-      <p><small>Tipo:</small> ${esc(item.tipo)} &nbsp;&nbsp; <small>Status:</small> ${statusLabel(item.status)}</p>
+      <strong class="item-title">${esc(item.title)}</strong>
+      <p class="item-meta"><small>Tipo:</small> ${esc(item.tipo)} &nbsp;&nbsp; <small>Status:</small> ${statusLabel(item.status)}</p>
       <div class="row-progress" aria-label="Progresso">
         <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progresso}">
           <div class="progress-fill" style="width:${progresso}%"></div>
@@ -169,9 +165,6 @@ function renderList(list=contentsCache){
   }
 }
 
-/* =========================================================
-   Drag & Drop
-   ========================================================= */
 function handleDragStart(e){
   dragId = Number(e.currentTarget.dataset.id);
   e.currentTarget.classList.add('dragging');
@@ -208,15 +201,13 @@ function handleDragEnd(e){
   renderList();
 }
 
-/* =========================================================
-   CRUD
-   ========================================================= */
-async function addContent(){
-  const title = $('title').value.trim();
-  const tipo  = $('tipo').value;
-  let   status = $('status').value;
+async function addContent(e){
+  e?.preventDefault?.();
+  const title = $('title')?.value?.trim() || '';
+  const tipo  = $('tipo')?.value || 'livro';
+  let   status= $('status')?.value || 'pendente';
 
-  // agora sempre 0 na criação
+  // requisito: progresso SEMPRE 0 ao criar
   const progresso = 0;
 
   if (status === 'fazendo') status = 'em_progresso';
@@ -225,6 +216,7 @@ async function addContent(){
   const res = await fetch(`${apiUrl}/contents`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
+    cache:'no-store',
     body: JSON.stringify({ title, tipo, status, progresso })
   });
 
@@ -234,7 +226,7 @@ async function addContent(){
     return;
   }
 
-  $('newForm').reset();
+  $('newForm')?.reset();
   await loadContents();
   showToast('Criado!');
 }
@@ -243,15 +235,16 @@ function openEdit(id){
   const it = contentsCache.find(x => x.id === id);
   if(!it) return;
   editingId = id;
-  $('edit-title').value = it.title || '';
-  $('edit-tipo').value = it.tipo || 'livro';
-  $('edit-status').value = normalizeStatus(it.status) || 'pendente';
-  $('edit-progresso').value = clamp(it.progresso);
+  $('edit-title').value      = it.title || '';
+  $('edit-tipo').value       = it.tipo || 'livro';
+  $('edit-status').value     = normalizeStatus(it.status) || 'pendente';
+  $('edit-progresso').value  = clamp(it.progresso);
   setModalOpen(true);
 }
 
 function setModalOpen(open){
   const m = $('editModal');
+  if(!m) return;
   m.setAttribute('aria-hidden', open ? 'false' : 'true');
   if(open){
     const escH = (e)=>{ if(e.key === 'Escape') closeModal(); };
@@ -260,7 +253,7 @@ function setModalOpen(open){
     m._outsideHandler = outH;
     document.addEventListener('keydown', escH);
     m.addEventListener('click', outH);
-    setTimeout(()=> $('edit-title').focus(), 80);
+    setTimeout(()=> $('edit-title')?.focus(), 80);
   }else{
     document.removeEventListener('keydown', m._escHandler||(()=>{}));
     m.removeEventListener('click', m._outsideHandler||(()=>{}));
@@ -271,22 +264,20 @@ function closeModal(){ setModalOpen(false); editingId = null; }
 async function saveEdit(){
   if(!editingId) return;
   const btn = $('saveEditBtn');
-  const title = $('edit-title').value.trim();
-  const tipo = $('edit-tipo').value;
-  let status = $('edit-status').value;
-  const progresso = clamp($('edit-progresso').value);
+  const title = $('edit-title')?.value?.trim() || '';
+  const tipo  = $('edit-tipo')?.value || 'livro';
+  let   status= $('edit-status')?.value || 'pendente';
+  const progresso = clamp($('edit-progresso')?.value);
 
   if(status === 'fazendo') status = 'em_progresso';
   if(title.length < 3){ showToast('Título muito curto', 'error'); return; }
 
-  btn.disabled = true;
-  const prev = btn.textContent;
-  btn.textContent = 'Salvando...';
-
+  if(btn){ btn.disabled = true; var prev = btn.textContent; btn.textContent = 'Salvando...'; }
   try{
     const res = await fetch(`${apiUrl}/contents/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type':'application/json' },
+      cache: 'no-store',
       body: JSON.stringify({ title, tipo, status, progresso })
     });
     if(!res.ok){
@@ -300,8 +291,7 @@ async function saveEdit(){
   }catch{
     showToast('Erro de rede', 'error');
   }finally{
-    btn.disabled = false;
-    btn.textContent = prev;
+    if(btn){ btn.disabled = false; btn.textContent = prev; }
   }
 }
 
@@ -314,6 +304,7 @@ function openDelete(id){
 }
 function setDeleteModal(open){
   const m = $('deleteModal');
+  if(!m) return;
   m.setAttribute('aria-hidden', open ? 'false' : 'true');
   if(open){
     const escH = (e)=>{ if(e.key === 'Escape') closeDeleteModal(); };
@@ -322,7 +313,7 @@ function setDeleteModal(open){
     m._outsideHandler = outH;
     document.addEventListener('keydown', escH);
     m.addEventListener('click', outH);
-    setTimeout(()=> $('confirmDeleteBtn').focus(), 60);
+    setTimeout(()=> $('confirmDeleteBtn')?.focus(), 60);
   }else{
     document.removeEventListener('keydown', m._escHandler||(()=>{}));
     m.removeEventListener('click', m._outsideHandler||(()=>{}));
@@ -333,13 +324,13 @@ function closeDeleteModal(){ setDeleteModal(false); deletingId = null; }
 async function confirmDelete(){
   if(!deletingId) return;
   const btn = $('confirmDeleteBtn');
-  btn.disabled = true;
+  if(btn) btn.disabled = true;
   try{
-    const res = await fetch(`${apiUrl}/contents/${deletingId}`, { method: 'DELETE' });
+    const res = await fetch(`${apiUrl}/contents/${deletingId}`, { method: 'DELETE', cache: 'no-store' });
     if(!res.ok){
       const err = await res.json().catch(()=>({}));
       showToast(err.error || 'Erro ao excluir', 'error');
-      btn.disabled = false;
+      if(btn) btn.disabled = false;
       return;
     }
     await loadContents();
@@ -348,7 +339,7 @@ async function confirmDelete(){
   }catch{
     showToast('Erro de rede', 'error');
   }finally{
-    btn.disabled = false;
+    if(btn) btn.disabled = false;
   }
 }
 
@@ -358,6 +349,7 @@ async function markDone(id){
   const res = await fetch(`${apiUrl}/contents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type':'application/json' },
+    cache: 'no-store',
     body: JSON.stringify({ ...it, status:'concluido', progresso: 100 })
   });
   if(!res.ok){
@@ -368,15 +360,12 @@ async function markDone(id){
   showToast('Concluído!');
 }
 
-/* =========================================================
-   Event Listeners (boas práticas: sem handlers inline)
-   ========================================================= */
 document.addEventListener('DOMContentLoaded', async () => {
   // Estado auth inicial
   setAuthState(!!token);
   if(token){ await loadContents(); }
 
-  // Login
+  // Login/Logout
   $('loginForm')?.addEventListener('submit', login);
   $('logoutBtn')?.addEventListener('click', logout);
 
@@ -412,3 +401,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelector('[data-close-delete]')?.addEventListener('click', closeDeleteModal);
 });
 
+Object.assign(window, {
+  login, logout, addContent,
+  openEdit, saveEdit, openDelete, confirmDelete,
+  closeModal, closeDeleteModal, applyFilters, markDone
+});
